@@ -1,0 +1,24 @@
+set -a
+
+# Local
+export DB_USER=""
+export DB_PASSWORD=""
+export DB_NAME=""
+export DB_PORT="5432"
+export DB_URL="host=localhost port=${DB_PORT} user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable"
+export PORT="8080"
+
+# GCP
+export PROJECT=""
+export REGION=""
+export CLOUD_SQL_INSTANCE=""
+export DB_ROOT_PASSWORD=""
+export DB_USER=""
+export DB_PASSWORD=""
+export DB_NAME="
+export DB_URL="host=${PROJECT}:${REGION}:${CLOUD_SQL_INSTANCE} port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=disable"
+export DB_URL_SECRET=""
+export CLOUD_BUILD_BUCKET=""
+export CLOUD_RUN_SA=""
+export IMAGE=""
+export SERVICE=""
