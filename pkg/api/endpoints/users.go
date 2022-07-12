@@ -5,19 +5,19 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/johannaojeling/go-rest-api/pkg/models"
+	"github.com/johannaojeling/go-rest-api/pkg/repositories"
 	"github.com/johannaojeling/go-rest-api/pkg/schemas"
 )
 
 type UsersHandler struct {
-	DB *gorm.DB
+	UsersRepository repositories.UserRepository
 }
 
-func NewUsersHandler(db *gorm.DB) *UsersHandler {
+func NewUsersHandler(usersRepository repositories.UserRepository) *UsersHandler {
 	return &UsersHandler{
-		DB: db,
+		UsersRepository: usersRepository,
 	}
 }
 
@@ -42,8 +42,8 @@ func (handler *UsersHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	user := userRequestToUser(userRequest)
-	err = handler.DB.Create(&user).Error
+	user := userRequestToUserModel(userRequest)
+	err = handler.UsersRepository.CreateUser(user)
 	if err != nil {
 		ctx.AbortWithStatusJSON(
 			http.StatusInternalServerError,
@@ -52,7 +52,7 @@ func (handler *UsersHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	userResponse := userToUserResponse(user)
+	userResponse := userModelToUserResponse(user)
 	ctx.JSON(http.StatusCreated, userResponse)
 }
 
@@ -68,9 +68,8 @@ func (handler *UsersHandler) GetUser(ctx *gin.Context) {
 	}
 	id := userUri.Id
 
-	var user models.User
-	err = handler.DB.Where("id = ?", id).First(&user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	user, err := handler.UsersRepository.GetUserById(id)
+	if errors.Is(err, repositories.ErrUserNotFound) {
 		ctx.AbortWithStatusJSON(
 			http.StatusNotFound,
 			models.NewErrorMessage("no user with id %q exists", id),
@@ -85,17 +84,23 @@ func (handler *UsersHandler) GetUser(ctx *gin.Context) {
 		return
 	}
 
-	userResponse := userToUserResponse(user)
+	userResponse := userModelToUserResponse(user)
 	ctx.JSON(http.StatusOK, userResponse)
 }
 
 func (handler *UsersHandler) GetAllUsers(ctx *gin.Context) {
-	var users []models.User
-	handler.DB.Find(&users)
+	allUsers, err := handler.UsersRepository.GetAllUsers()
+	if err != nil {
+		ctx.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			models.NewErrorMessage("error retrieving users"),
+		)
+		return
+	}
 
-	userResponseList := make([]schemas.UserResponse, len(users))
-	for i, user := range users {
-		userResponseList[i] = userToUserResponse(user)
+	userResponseList := make([]schemas.UserResponse, len(allUsers))
+	for i, user := range allUsers {
+		userResponseList[i] = userModelToUserResponse(user)
 	}
 
 	ctx.JSON(http.StatusOK, userResponseList)
@@ -123,14 +128,17 @@ func (handler *UsersHandler) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	var user models.User
-	err = handler.DB.Where("id = ?", id).First(&user).Error
+	updates := userRequestToUserModel(userRequest)
+	updatedUser, err := handler.UsersRepository.UpdateUserById(id, updates)
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		user = userRequestToUser(userRequest)
-		user.Id = id
-
-		err = handler.DB.Create(&user).Error
+	if errors.Is(err, repositories.ErrUserNotFound) {
+		newUser := &models.User{
+			Id:        id,
+			FirstName: updates.FirstName,
+			LastName:  updates.LastName,
+			Email:     updates.Email,
+		}
+		err = handler.UsersRepository.CreateUser(newUser)
 		if err != nil {
 			ctx.AbortWithStatusJSON(
 				http.StatusInternalServerError,
@@ -139,21 +147,11 @@ func (handler *UsersHandler) UpdateUser(ctx *gin.Context) {
 			return
 		}
 
-		userResponse := userToUserResponse(user)
+		userResponse := userModelToUserResponse(newUser)
 		ctx.JSON(http.StatusCreated, userResponse)
 		return
 	}
 
-	if err != nil {
-		ctx.AbortWithStatusJSON(
-			http.StatusInternalServerError,
-			models.NewErrorMessage("error retrieving user"),
-		)
-		return
-	}
-
-	userUpdates := userRequestToUser(userRequest)
-	err = handler.DB.Model(&user).Updates(userUpdates).Error
 	if err != nil {
 		ctx.AbortWithStatusJSON(
 			http.StatusInternalServerError,
@@ -162,7 +160,7 @@ func (handler *UsersHandler) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	userResponse := userToUserResponse(user)
+	userResponse := userModelToUserResponse(updatedUser)
 	ctx.JSON(http.StatusOK, userResponse)
 }
 
@@ -178,24 +176,14 @@ func (handler *UsersHandler) DeleteUser(ctx *gin.Context) {
 	}
 	id := userUri.Id
 
-	var user models.User
-	err = handler.DB.Where("id = ?", id).First(&user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	err = handler.UsersRepository.DeleteUser(id)
+	if errors.Is(err, repositories.ErrUserNotFound) {
 		ctx.AbortWithStatusJSON(
 			http.StatusNotFound,
 			models.NewErrorMessage("no user with id %q exists", id),
 		)
 		return
 	}
-	if err != nil {
-		ctx.AbortWithStatusJSON(
-			http.StatusInternalServerError,
-			models.NewErrorMessage("error retrieving user"),
-		)
-		return
-	}
-
-	err = handler.DB.Delete(&user).Error
 	if err != nil {
 		ctx.AbortWithStatusJSON(
 			http.StatusInternalServerError,
@@ -207,15 +195,15 @@ func (handler *UsersHandler) DeleteUser(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func userRequestToUser(userRequest schemas.UserRequest) models.User {
-	return models.User{
+func userRequestToUserModel(userRequest schemas.UserRequest) *models.User {
+	return &models.User{
 		FirstName: userRequest.FirstName,
 		LastName:  userRequest.LastName,
 		Email:     userRequest.Email,
 	}
 }
 
-func userToUserResponse(user models.User) schemas.UserResponse {
+func userModelToUserResponse(user *models.User) schemas.UserResponse {
 	return schemas.UserResponse{
 		Id:        user.Id,
 		FirstName: user.FirstName,

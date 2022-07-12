@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/johannaojeling/go-rest-api/pkg/repositories"
 )
 
 var (
@@ -37,13 +39,14 @@ func (s *Suite) SetupSuite() {
 	dialector := postgres.New(postgres.Config{
 		Conn: conn,
 	})
-	db, err := gorm.Open(dialector, new(gorm.Config))
+	db, err := gorm.Open(dialector, &gorm.Config{})
 	if err != nil {
 		s.T().Fatalf("error opening db connection: %v", err)
 	}
 
 	router := gin.Default()
-	handler := NewUsersHandler(db)
+	userRepository := repositories.NewUserRepository(db)
+	handler := NewUsersHandler(userRepository)
 	handler.Register(router.Group(""))
 
 	s.mock = mock
@@ -55,7 +58,7 @@ func (s *Suite) AfterTest(_, _ string) {
 }
 
 func TestUsersHandler(t *testing.T) {
-	suite.Run(t, new(Suite))
+	suite.Run(t, &Suite{})
 }
 
 func (s *Suite) TestUsersHandler_CreateUser() {

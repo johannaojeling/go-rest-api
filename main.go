@@ -7,22 +7,25 @@ import (
 	"github.com/johannaojeling/go-rest-api/pkg/api"
 )
 
-func main() {
-	driver, ok := os.LookupEnv("DRIVER")
-	if !ok {
+var (
+	driver = os.Getenv("DRIVER")
+	dbUrl  = os.Getenv("DB_URL")
+	port   = os.Getenv("PORT")
+)
+
+func init() {
+	if driver == "" {
 		driver = "postgres"
 	}
+	if port == "" {
+		port = "8080"
+	}
+}
 
-	dbUrl := os.Getenv("DB_URL")
+func main() {
 	app, err := api.NewApp(driver, dbUrl)
 	if err != nil {
 		log.Fatalf("error initializing app: %v", err)
-	}
-
-	port, ok := os.LookupEnv("PORT")
-	if !ok {
-		port = "8080"
-		log.Printf("defaulting to port %s\n", port)
 	}
 
 	log.Printf("listening on port %s\n", port)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/johannaojeling/go-rest-api/pkg/api/endpoints"
 	"github.com/johannaojeling/go-rest-api/pkg/models"
+	"github.com/johannaojeling/go-rest-api/pkg/repositories"
 )
 
 type App struct {
@@ -36,7 +37,7 @@ func (app *App) connectToDB(driver string, dbUrl string) error {
 		return err
 	}
 
-	err = db.AutoMigrate(new(models.User))
+	err = db.AutoMigrate(&models.User{})
 	if err != nil {
 		return err
 	}
@@ -48,7 +49,8 @@ func (app *App) connectToDB(driver string, dbUrl string) error {
 func (app *App) registerHandlers() {
 	app.Router = gin.Default()
 	group := app.Router.Group("/users")
-	endpoints.NewUsersHandler(app.DB).Register(group)
+	userRepository := repositories.NewUserRepository(app.DB)
+	endpoints.NewUsersHandler(userRepository).Register(group)
 }
 
 func (app *App) Run(port string) error {
