@@ -45,7 +45,7 @@ func (s *Suite) SetupSuite() {
 	}
 
 	router := gin.Default()
-	userRepository := repositories.NewUserRepository(db)
+	userRepository := repositories.NewSQLUserRepository(db)
 	handler := NewUsersHandler(userRepository)
 	handler.Register(router.Group(""))
 

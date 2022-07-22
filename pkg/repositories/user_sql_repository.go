@@ -9,20 +9,20 @@ import (
 )
 
 type UserSQLRepository struct {
-	DB *gorm.DB
+	gormDB *gorm.DB
 }
 
-func NewUserRepository(DB *gorm.DB) *UserSQLRepository {
-	return &UserSQLRepository{DB: DB}
+func NewSQLUserRepository(DB *gorm.DB) *UserSQLRepository {
+	return &UserSQLRepository{gormDB: DB}
 }
 
 func (repo *UserSQLRepository) CreateUser(user *models.User) error {
-	return repo.DB.Create(user).Error
+	return repo.gormDB.Create(user).Error
 }
 
 func (repo *UserSQLRepository) GetUserById(id string) (*models.User, error) {
 	user := &models.User{}
-	err := repo.DB.Where("id = ?", id).First(user).Error
+	err := repo.gormDB.Where("id = ?", id).First(user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrUserNotFound
 	}
@@ -34,7 +34,7 @@ func (repo *UserSQLRepository) GetUserById(id string) (*models.User, error) {
 
 func (repo *UserSQLRepository) GetAllUsers() ([]*models.User, error) {
 	var users []*models.User
-	err := repo.DB.Find(&users).Error
+	err := repo.gormDB.Find(&users).Error
 	return users, err
 }
 
@@ -43,25 +43,25 @@ func (repo *UserSQLRepository) UpdateUserById(
 	updates *models.User,
 ) (*models.User, error) {
 	user := &models.User{}
-	err := repo.DB.Where("id = ?", id).First(user).Error
+	err := repo.gormDB.Where("id = ?", id).First(user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	err = repo.DB.Model(user).Updates(updates).Error
+	err = repo.gormDB.Model(user).Updates(updates).Error
 	return user, err
 }
 
-func (repo *UserSQLRepository) DeleteUser(id string) error {
+func (repo *UserSQLRepository) DeleteUserById(id string) error {
 	user := &models.User{}
-	err := repo.DB.Where("id = ?", id).First(user).Error
+	err := repo.gormDB.Where("id = ?", id).First(user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrUserNotFound
 	}
 	if err != nil {
 		return err
 	}
-	return repo.DB.Delete(&user).Error
+	return repo.gormDB.Delete(&user).Error
 }

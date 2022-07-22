@@ -37,6 +37,7 @@ Set environment variables
 | DB_PASSWORD | Database password                                      |
 | DB_NAME     | Database name                                          |
 | DB_PORT     | Database port                                          |
+| DB_DRIVER   | Database driver. If not set, will use `postgres`       |
 | PORT        | Port for web server. If not set, will listen on `8080` |
 
 Run PostgreSQL with Docker
@@ -106,6 +107,7 @@ Set environment variables
 | DB_USER            | Database user                                                                                                                                           |
 | DB_PASSWORD        | Database password                                                                                                                                       |
 | DB_NAME            | Database name                                                                                                                                           |
+| DB_DRIVER          | Database driver. If not set, will use `postgres`                                                                                                        |
 | DB_URL_SECRET      | Secret Manager secret that will contain the database URL                                                                                                |
 | CLOUD_BUILD_BUCKET | Bucket used for Cloud Build                                                                                                                             |
 | CLOUD_RUN_SA       | Email of service account used for Cloud Run. Needs the roles:<br/><ul><li>`roles/cloudsql.admin`</li><li>`roles/secretmanager.secretAccessor`</li></ul> |

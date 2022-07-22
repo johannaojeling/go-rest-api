@@ -13,12 +13,12 @@ import (
 )
 
 type UsersHandler struct {
-	UsersRepository repositories.UserRepository
+	userRepository repositories.UserRepository
 }
 
-func NewUsersHandler(usersRepository repositories.UserRepository) *UsersHandler {
+func NewUsersHandler(userRepository repositories.UserRepository) *UsersHandler {
 	return &UsersHandler{
-		UsersRepository: usersRepository,
+		userRepository: userRepository,
 	}
 }
 
@@ -45,7 +45,7 @@ func (handler *UsersHandler) CreateUser(ctx *gin.Context) {
 	}
 
 	user := userRequestToUserModel(userRequest)
-	err = handler.UsersRepository.CreateUser(user)
+	err = handler.userRepository.CreateUser(user)
 	if err != nil {
 		log.Printf("error creating user: %v", err)
 		ctx.AbortWithStatusJSON(
@@ -72,7 +72,7 @@ func (handler *UsersHandler) GetUser(ctx *gin.Context) {
 	}
 	id := userUri.Id
 
-	user, err := handler.UsersRepository.GetUserById(id)
+	user, err := handler.userRepository.GetUserById(id)
 	if errors.Is(err, repositories.ErrUserNotFound) {
 		log.Printf("user not found: %v", err)
 		ctx.AbortWithStatusJSON(
@@ -95,7 +95,7 @@ func (handler *UsersHandler) GetUser(ctx *gin.Context) {
 }
 
 func (handler *UsersHandler) GetAllUsers(ctx *gin.Context) {
-	users, err := handler.UsersRepository.GetAllUsers()
+	users, err := handler.userRepository.GetAllUsers()
 	if err != nil {
 		log.Printf("error getting users: %v", err)
 		ctx.AbortWithStatusJSON(
@@ -138,7 +138,7 @@ func (handler *UsersHandler) UpdateUser(ctx *gin.Context) {
 	}
 
 	updates := userRequestToUserModel(userRequest)
-	updatedUser, err := handler.UsersRepository.UpdateUserById(id, updates)
+	updatedUser, err := handler.userRepository.UpdateUserById(id, updates)
 
 	if errors.Is(err, repositories.ErrUserNotFound) {
 		newUser := &models.User{
@@ -147,7 +147,7 @@ func (handler *UsersHandler) UpdateUser(ctx *gin.Context) {
 			LastName:  updates.LastName,
 			Email:     updates.Email,
 		}
-		err = handler.UsersRepository.CreateUser(newUser)
+		err = handler.userRepository.CreateUser(newUser)
 		if err != nil {
 			log.Printf("error creating user: %v", err)
 			ctx.AbortWithStatusJSON(
@@ -188,7 +188,7 @@ func (handler *UsersHandler) DeleteUser(ctx *gin.Context) {
 	}
 	id := userUri.Id
 
-	err = handler.UsersRepository.DeleteUser(id)
+	err = handler.userRepository.DeleteUserById(id)
 	if errors.Is(err, repositories.ErrUserNotFound) {
 		log.Printf("user not found: %v", err)
 		ctx.AbortWithStatusJSON(
